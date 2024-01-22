@@ -17,6 +17,13 @@ func New(input string) *Lexer {
 	return l
 }
 
+func (l *Lexer) peekCh() byte {
+	if l.nextPosition >= len(l.input) {
+		return 0
+	}
+	return l.input[l.nextPosition]
+}
+
 func (l *Lexer) readCh() {
 	if l.nextPosition >= len(l.input) {
 		l.ch = 0
@@ -71,21 +78,49 @@ func (l *Lexer) NextToken() token.Token {
 
 	switch l.ch {
 	case '=':
-		tok = newToken(token.ASSIGN, l.ch)
+		if l.peekCh() == '=' {
+			ch := l.ch
+			l.readCh()
+			lit := string(ch) + string(l.ch)
+			tok = newIdentToken(token.EQ, lit)
+		} else {
+			tok = newToken(token.ASSIGN, l.ch)
+		}
 	case '+':
 		tok = newToken(token.PLUS, l.ch)
 	case '-':
 		tok = newToken(token.MINUS, l.ch)
 	case '!':
-		tok = newToken(token.BANG, l.ch)
+		if l.peekCh() == '=' {
+			ch := l.ch
+			l.readCh()
+			lit := string(ch) + string(l.ch)
+			tok = newIdentToken(token.NEQ, lit)
+		} else {
+			tok = newToken(token.BANG, l.ch)
+		}
 	case '/':
 		tok = newToken(token.SLASH, l.ch)
 	case '*':
 		tok = newToken(token.ASTERISK, l.ch)
 	case '<':
-		tok = newToken(token.LT, l.ch)
+		if l.peekCh() == '=' {
+			ch := l.ch
+			l.readCh()
+			lit := string(ch) + string(l.ch)
+			tok = newIdentToken(token.LTE, lit)
+		} else {
+			tok = newToken(token.LT, l.ch)
+		}
 	case '>':
-		tok = newToken(token.GT, l.ch)
+		if l.peekCh() == '=' {
+			ch := l.ch
+			l.readCh()
+			lit := string(ch) + string(l.ch)
+			tok = newIdentToken(token.GTE, lit)
+		} else {
+			tok = newToken(token.GT, l.ch)
+		}
 	case ';':
 		tok = newToken(token.SEMICOLON, l.ch)
 	case ',':
