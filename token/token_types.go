@@ -9,8 +9,15 @@ const (
 	INT   TokenType = "INT"   // integer numbers
 
 	// Operators
-	ASSIGN = "="
-	PLUS   = "+"
+	ASSIGN   = "="
+	PLUS     = "+"
+	MINUS    = "-"
+	BANG     = "!"
+	ASTERISK = "*"
+	SLASH    = "/"
+
+	LT = "<"
+	GT = ">"
 
 	// Delimiters
 	COMMA     = ","
