@@ -32,10 +32,14 @@ func isLetter(ch byte) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
 }
 
-func (l *Lexer) readIdent() string {
+func isDigit(ch byte) bool {
+	return '0' <= ch && ch <= '9'
+}
+
+func (l *Lexer) readIdent(checkFn func(ch byte) bool) string {
 	pos := l.position
 
-	for isLetter(l.ch) {
+	for checkFn(l.ch) {
 		l.readCh()
 	}
 
@@ -86,8 +90,12 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newEOFToken()
 	default:
 		if isLetter(l.ch) {
-			ident := l.readIdent()
+			ident := l.readIdent(isLetter)
 			tok = newIdentToken(token.LookupType(ident), ident)
+			return tok
+		} else if isDigit(l.ch) {
+			num := l.readIdent(isDigit)
+			tok = newIdentToken(token.INT, num)
 			return tok
 		} else {
 			tok = newToken(token.ILLEGAL, l.ch)
