@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/nayyara-airlangga/basedlang/ast"
@@ -52,9 +53,8 @@ func TestIntLiteralExpression(t *testing.T) {
 	}
 
 	expectedExprs := []struct {
-		value   int64
-		literal string
-	}{{100, "100"}, {202, "202"}}
+		value int64
+	}{{100}, {202}}
 
 	for i, ee := range expectedExprs {
 		stmt, ok := program.Statements[i].(*ast.ExpressionStatement)
@@ -62,15 +62,66 @@ func TestIntLiteralExpression(t *testing.T) {
 			t.Fatalf("program.Statements[%d] is not ast.ExpressionStatement. got=%T", i, program.Statements[i])
 		}
 
-		intLit, ok := stmt.Expression.(*ast.IntLiteral)
+		if !testIntegerLiteral(t, stmt.Expression, ee.value) {
+			return
+		}
+	}
+}
+
+func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
+	intLit, ok := il.(*ast.IntLiteral)
+	if !ok {
+		t.Errorf("il not *ast.IntLiteral. got=%T", il)
+		return false
+	}
+	if intLit.Value != value {
+		t.Errorf("intLit.Value not %d. got=%d", value, intLit.Value)
+		return false
+	}
+	if intLit.TokenLiteral() != fmt.Sprintf("%d", value) {
+		t.Errorf("intLit.TokenLiteral() not %d. got=%s", value, intLit.TokenLiteral())
+		return false
+	}
+
+	return true
+}
+
+func TestPrefixExpressions(t *testing.T) {
+	tests := []struct {
+		input    string
+		operator string
+		intVal   int64
+	}{
+		{"!120;", "!", 120},
+		{"-67", "-", 67},
+	}
+
+	for _, tc := range tests {
+		p := New(lexer.New(tc.input))
+
+		program := p.Parse()
+
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("Unexpected number of statements. expected=%d, got=%d", 1, len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 		if !ok {
-			t.Fatalf("exp not *ast.IntLiteral. got=%T", stmt.Expression)
+			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T",
+				program.Statements[0])
 		}
-		if intLit.Value != ee.value {
-			t.Fatalf("intLit.Value not %d. got=%d", ee.value, intLit.Value)
+		exp, ok := stmt.Expression.(*ast.PrefixExpression)
+		if !ok {
+			t.Fatalf("stmt is not ast.PrefixExpression. got=%T", stmt.Expression)
 		}
-		if intLit.TokenLiteral() != ee.literal {
-			t.Fatalf("intLit.TokenLiteral() not %s. got=%s", ee.literal, intLit.TokenLiteral())
+		if exp.Operator != tc.operator {
+			t.Fatalf("exp.Operator is not '%s'. got=%s",
+				tc.operator, exp.Operator)
+		}
+		if !testIntegerLiteral(t, exp.Right, tc.intVal) {
+			return
 		}
 	}
 }
