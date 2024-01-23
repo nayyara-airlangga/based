@@ -36,6 +36,45 @@ func TestIdentifierExpression(t *testing.T) {
 	}
 }
 
+func TestIntLiteralExpression(t *testing.T) {
+	input := `
+100;
+202
+	`
+
+	p := New(lexer.New(input))
+	program := p.Parse()
+
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 2 {
+		t.Fatalf("Unexpected number of statements. expected=%d, got=%d", 2, len(program.Statements))
+	}
+
+	expectedExprs := []struct {
+		value   int64
+		literal string
+	}{{100, "100"}, {202, "202"}}
+
+	for i, ee := range expectedExprs {
+		stmt, ok := program.Statements[i].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[%d] is not ast.ExpressionStatement. got=%T", i, program.Statements[i])
+		}
+
+		intLit, ok := stmt.Expression.(*ast.IntLiteral)
+		if !ok {
+			t.Fatalf("exp not *ast.IntLiteral. got=%T", stmt.Expression)
+		}
+		if intLit.Value != ee.value {
+			t.Fatalf("intLit.Value not %d. got=%d", ee.value, intLit.Value)
+		}
+		if intLit.TokenLiteral() != ee.literal {
+			t.Fatalf("intLit.TokenLiteral() not %s. got=%s", ee.literal, intLit.TokenLiteral())
+		}
+	}
+}
+
 func TestLetStatements(t *testing.T) {
 	input := `
 let x = 5;

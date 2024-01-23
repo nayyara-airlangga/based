@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/nayyara-airlangga/basedlang/ast"
 	"github.com/nayyara-airlangga/basedlang/lexer"
@@ -61,6 +62,7 @@ func New(l *lexer.Lexer) *Parser {
 	// Register prefix functions
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
+	p.registerPrefix(token.INT, p.parseIntLiteral)
 	return p
 }
 
@@ -153,6 +155,21 @@ func (p *Parser) parseExpression(pr precedence) ast.Expression {
 
 func (p *Parser) parseIdentifier() ast.Expression {
 	return &ast.Identifier{Token: p.curTok, Value: p.curTok.Literal}
+}
+
+func (p *Parser) parseIntLiteral() ast.Expression {
+	lit := &ast.IntLiteral{Token: p.curTok}
+
+	value, err := strconv.ParseInt(p.curTok.Literal, 0, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as integer", p.curTok.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	lit.Value = value
+
+	return lit
 }
 
 func (p *Parser) curTokenIs(t token.TokenType) bool {
