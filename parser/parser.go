@@ -8,13 +8,30 @@ import (
 	"github.com/nayyara-airlangga/basedlang/token"
 )
 
+// Pratt parser function types
+type (
+	prefixParseFn func() ast.Expression
+	infixParseFn  func(left ast.Expression) ast.Expression
+)
+
 type Parser struct {
 	l *lexer.Lexer
 
 	curTok  token.Token
 	peekTok token.Token
 
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
+
 	errors []string
+}
+
+func (p *Parser) registerPrefix(t token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[t] = fn
+}
+
+func (p *Parser) registerInfix(t token.TokenType, fn infixParseFn) {
+	p.infixParseFns[t] = fn
 }
 
 func (p *Parser) nextToken() {
