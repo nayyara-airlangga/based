@@ -308,7 +308,11 @@ func TestOperatorPrecedences(t *testing.T) {
 			"true;",
 			"true",
 		},
-		{"false", "false"},
+		{
+			"false",
+			"false",
+		},
+
 		{
 			"3 > 5 == false",
 			"((3 > 5) == false)",
@@ -332,6 +336,26 @@ func TestOperatorPrecedences(t *testing.T) {
 		{
 			"3 + 4 * 5 == 3 * 1 + 4 * 5",
 			"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+		},
+		{
+			"1 + (2 + 3) + 4",
+			"((1 + (2 + 3)) + 4)",
+		},
+		{
+			"(5 + 5) * 2",
+			"((5 + 5) * 2)",
+		},
+		{
+			"2 / (5 + 5)",
+			"(2 / (5 + 5))",
+		},
+		{
+			"-(5 + 5)",
+			"(-(5 + 5))",
+		},
+		{
+			"!(true == true)",
+			"(!(true == true))",
 		},
 	}
 
