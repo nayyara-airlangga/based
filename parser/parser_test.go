@@ -198,6 +198,95 @@ func TestIfElseExpression(t *testing.T) {
 	}
 }
 
+func TestIfElseIfExpression(t *testing.T) {
+	input := `
+	if (x < y) {
+		x
+	} else if (x == y) {
+		x - y
+	} else {
+		y
+	}
+	`
+
+	p := New(lexer.New(input))
+	program := p.Parse()
+
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Unexpected number of statements. expected=%d, got=%d", 1, len(program.Statements))
+	}
+
+	exprStmt, isExprStmt := program.Statements[0].(*ast.ExpressionStatement)
+	if !isExprStmt {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+
+	ifExpr, isIfExpr := exprStmt.Expression.(*ast.IfExpression)
+	if !isIfExpr {
+		t.Fatalf("exprStmt.Expression is not *ast.IfExpression. got=%T", exprStmt.Expression)
+	}
+
+	if !testInfixExpression(t, ifExpr.Condition, "x", "<", "y") {
+		return
+	}
+	if len(ifExpr.Body.Statements) != 1 {
+		t.Fatalf("Unexpected number of statements in Body. expected=%d, got=%d", 1, len(program.Statements))
+	}
+
+	exprStmt, isExprStmt = ifExpr.Body.Statements[0].(*ast.ExpressionStatement)
+	if !isExprStmt {
+		t.Fatalf("Statements[0] is not an *ast.ExpressionStatement. got=%T", ifExpr.Body.Statements[0])
+	}
+	if !testIdentifier(t, exprStmt.Expression, "x") {
+		return
+	}
+
+	if ifExpr.Else == nil {
+		t.Fatalf("Else block is nil")
+	}
+
+	elif, isElifBlock := ifExpr.Else.(*ast.IfExpression)
+	if !isElifBlock {
+		t.Fatalf("Else is not an *ast.IfExpression. got=%T", ifExpr.Else)
+	}
+	if !testInfixExpression(t, elif.Condition, "x", "==", "y") {
+		return
+	}
+	if len(elif.Body.Statements) != 1 {
+		t.Fatalf("Unexpected number of statements in elif.Body. expected=%d, got=%d", 1, len(elif.Body.Statements))
+	}
+
+	exprStmt, isExprStmt = elif.Body.Statements[0].(*ast.ExpressionStatement)
+	if !isExprStmt {
+		t.Fatalf("elif.Body.Statements[0] is not an *ast.ExpressionStatement. got=%T", elif.Body.Statements[0])
+	}
+	if !testInfixExpression(t, exprStmt.Expression, "x", "-", "y") {
+		return
+	}
+
+	if elif.Else == nil {
+		t.Fatalf("elif.Else block is nil")
+	}
+
+	bl, isBlock := elif.Else.(*ast.BlockStatement)
+	if !isBlock {
+		t.Fatalf("Else is not an *ast.BlockStatement. got=%T", ifExpr.Else)
+	}
+	if len(bl.Statements) != 1 {
+		t.Fatalf("Unexpected number of statements in bl.Statements. expected=%d, got=%d", 1, len(bl.Statements))
+	}
+
+	exprStmt, isExprStmt = bl.Statements[0].(*ast.ExpressionStatement)
+	if !isExprStmt {
+		t.Fatalf("bl.Statements[0] is not an *ast.ExpressionStatement. got=%T", bl.Statements[0])
+	}
+	if !testIdentifier(t, exprStmt.Expression, "y") {
+		return
+	}
+}
+
 func testIdentifier(t *testing.T, expr ast.Expression, value string) bool {
 	ident, isIdent := expr.(*ast.Identifier)
 	if !isIdent {
