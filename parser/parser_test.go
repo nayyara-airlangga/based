@@ -61,6 +61,33 @@ func TestIntLiteralExpression(t *testing.T) {
 	}
 }
 
+func TestBooleanExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{{"true;", true}, {"false", false}}
+
+	for _, tc := range tests {
+		p := New(lexer.New(tc.input))
+		program := p.Parse()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program has not enough statements. got=%d",
+				len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+		}
+
+		if !testBoolean(t, stmt.Expression, tc.expected) {
+			return
+		}
+	}
+}
+
 func testIdentifier(t *testing.T, expr ast.Expression, value string) bool {
 	ident, isIdent := expr.(*ast.Identifier)
 	if !isIdent {
@@ -97,6 +124,24 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 	return true
 }
 
+func testBoolean(t *testing.T, expr ast.Expression, expected bool) bool {
+	bo, isBool := expr.(*ast.Boolean)
+	if !isBool {
+		t.Errorf("expr is not *ast.Boolean. got=%T", expr)
+		return false
+	}
+	if bo.Value != expected {
+		t.Errorf("bo.Value is not %t. got=%t", expected, bo.Value)
+		return false
+	}
+	if bo.TokenLiteral() != fmt.Sprintf("%t", expected) {
+		t.Errorf("bo.TokenLiteral() is not %t. got=%s", expected, bo.TokenLiteral())
+		return false
+	}
+
+	return true
+}
+
 func testLiteralExpression(t *testing.T, expr ast.Expression, expected any) bool {
 	switch eVal := expected.(type) {
 	case int:
@@ -105,6 +150,8 @@ func testLiteralExpression(t *testing.T, expr ast.Expression, expected any) bool
 		return testIntegerLiteral(t, expr, eVal)
 	case string:
 		return testIdentifier(t, expr, eVal)
+	case bool:
+		return testBoolean(t, expr, eVal)
 	default:
 		t.Errorf("Unhandled type for expr. got=%T", expr)
 		return false
@@ -135,10 +182,12 @@ func TestPrefixExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
 		operator string
-		intVal   int64
+		val      any
 	}{
 		{"!120;", "!", 120},
 		{"-67", "-", 67},
+		{"!true;", "!", true},
+		{"!false;", "!", false},
 	}
 
 	for _, tc := range tests {
@@ -165,7 +214,7 @@ func TestPrefixExpressions(t *testing.T) {
 			t.Fatalf("exp.Operator is not '%s'. got=%s",
 				tc.operator, exp.Operator)
 		}
-		if !testIntegerLiteral(t, exp.Right, tc.intVal) {
+		if !testLiteralExpression(t, exp.Right, tc.val) {
 			return
 		}
 	}
@@ -174,9 +223,9 @@ func TestPrefixExpressions(t *testing.T) {
 func TestInfixExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
-		leftVal  int64
+		leftVal  any
 		op       string
-		rightVal int64
+		rightVal any
 	}{
 		{"5 + 5;", 5, "+", 5},
 		{"5 - 5;", 5, "-", 5},
@@ -188,6 +237,9 @@ func TestInfixExpressions(t *testing.T) {
 		{"5 != 5;", 5, "!=", 5},
 		{"5 <= 5;", 5, "<=", 5},
 		{"5 >= 5;", 5, ">=", 5},
+		{"true == true", true, "==", true},
+		{"true != false", true, "!=", false},
+		{"false == false", false, "==", false},
 	}
 
 	for _, tc := range tests {
@@ -251,6 +303,19 @@ func TestOperatorPrecedences(t *testing.T) {
 		{
 			"3 + 4; -5 * 5",
 			"(3 + 4)((-5) * 5)",
+		},
+		{
+			"true;",
+			"true",
+		},
+		{"false", "false"},
+		{
+			"3 > 5 == false",
+			"((3 > 5) == false)",
+		},
+		{
+			"3 < 5 == true",
+			"((3 < 5) == true)",
 		},
 		{
 			"5 > 4 == 3 < 4",
