@@ -65,6 +65,19 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.INT, p.parseIntLiteral)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+
+	// Register infix functions
+	p.infixParseFns = make(map[token.TokenType]infixParseFn)
+	p.registerInfix(token.EQ, p.parseInfixExpression)
+	p.registerInfix(token.NEQ, p.parseInfixExpression)
+	p.registerInfix(token.LT, p.parseInfixExpression)
+	p.registerInfix(token.GT, p.parseInfixExpression)
+	p.registerInfix(token.LTE, p.parseInfixExpression)
+	p.registerInfix(token.GTE, p.parseInfixExpression)
+	p.registerInfix(token.PLUS, p.parseInfixExpression)
+	p.registerInfix(token.MINUS, p.parseInfixExpression)
+	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
+	p.registerInfix(token.SLASH, p.parseInfixExpression)
 	return p
 }
 
@@ -153,6 +166,17 @@ func (p *Parser) parseExpression(pr precedence) ast.Expression {
 
 	leftExpr := prefixFn()
 
+	for !p.peekTokenIs(token.SEMICOLON) && pr < p.peekPrecedence() {
+		infixFn := p.infixParseFns[p.peekTok.Type]
+		if infixFn == nil {
+			return leftExpr
+		}
+
+		p.nextToken()
+
+		leftExpr = infixFn(leftExpr)
+	}
+
 	return leftExpr
 }
 
@@ -185,9 +209,43 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	return expr
 }
 
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	expr := &ast.InfixExpression{Token: p.curTok, Left: left, Operator: p.curTok.Literal}
+	pre := p.curPrecedence()
+
+	p.nextToken()
+
+	expr.Right = p.parseExpression(pre)
+
+	return expr
+}
+
 func (p *Parser) noPrefixParseFnErr(t token.TokenType) {
 	msg := fmt.Sprintf("no prefix parse function found for %s", t)
 	p.errors = append(p.errors, msg)
+}
+
+func getPrecedence(t token.TokenType) precedence {
+	switch t {
+	case token.EQ, token.NEQ:
+		return EQUALS
+	case token.LT, token.GT, token.LTE, token.GTE:
+		return LESSGREATER
+	case token.PLUS, token.MINUS:
+		return SUM
+	case token.ASTERISK, token.SLASH:
+		return PRODUCT
+	default:
+		return LOWEST
+	}
+}
+
+func (p *Parser) curPrecedence() precedence {
+	return getPrecedence(p.curTok.Type)
+}
+
+func (p *Parser) peekPrecedence() precedence {
+	return getPrecedence(p.peekTok.Type)
 }
 
 func (p *Parser) curTokenIs(t token.TokenType) bool {
