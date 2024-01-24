@@ -198,6 +198,7 @@ type BlockStatement struct {
 	Statements []Statement
 }
 
+func (bs *BlockStatement) expressionNode()      {}
 func (bs *BlockStatement) statementNode()       {}
 func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
 func (bs *BlockStatement) String() string {
