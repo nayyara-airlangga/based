@@ -180,13 +180,13 @@ func (ife *IfExpression) TokenLiteral() string { return ife.Token.Literal }
 func (ife *IfExpression) String() string {
 	var out bytes.Buffer
 
-	out.WriteString("if")
+	out.WriteString("if ")
 	out.WriteString(ife.Condition.String())
 	out.WriteString(" ")
 	out.WriteString(ife.Body.String())
 
 	if ife.Else != nil {
-		out.WriteString("else ")
+		out.WriteString(" else ")
 		out.WriteString(ife.Else.String())
 	}
 
