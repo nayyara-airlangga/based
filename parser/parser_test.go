@@ -581,6 +581,16 @@ func TestInfixExpressions(t *testing.T) {
 		{"5 != 5;", 5, "!=", 5},
 		{"5 <= 5;", 5, "<=", 5},
 		{"5 >= 5;", 5, ">=", 5},
+		{"foobar + barfoo;", "foobar", "+", "barfoo"},
+		{"foobar - barfoo;", "foobar", "-", "barfoo"},
+		{"foobar * barfoo;", "foobar", "*", "barfoo"},
+		{"foobar / barfoo;", "foobar", "/", "barfoo"},
+		{"foobar > barfoo;", "foobar", ">", "barfoo"},
+		{"foobar < barfoo;", "foobar", "<", "barfoo"},
+		{"foobar == barfoo;", "foobar", "==", "barfoo"},
+		{"foobar != barfoo;", "foobar", "!=", "barfoo"},
+		{"foobar <= barfoo;", "foobar", "<=", "barfoo"},
+		{"foobar >= barfoo;", "foobar", ">=", "barfoo"},
 		{"true == true", true, "==", true},
 		{"true != false", true, "!=", false},
 		{"false == false", false, "==", false},
@@ -735,61 +745,67 @@ func TestOperatorPrecedences(t *testing.T) {
 }
 
 func TestLetStatements(t *testing.T) {
-	input := `
-let x = 5;
-let y = 10;
-let foobar = 838383;
-`
-
-	p := New(lexer.New(input))
-	program := p.Parse()
-
-	checkParserErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("Parse() returned nil")
-	}
-	if len(program.Statements) != 3 {
-		t.Fatalf("Unexpected number of statements. expected=%d, got=%d", 3, len(program.Statements))
-	}
-
-	expectedStmts := []struct {
+	tests := []struct {
+		input string
 		ident string
-	}{{"x"}, {"y"}, {"foobar"}}
+		value any
+	}{
+		{"let x = 5;", "x", 5},
+		{"let y = true;", "y", true},
+		{"let foobar = y;", "foobar", "y"},
+	}
 
-	for i, es := range expectedStmts {
-		stmt := program.Statements[i]
-		if !testLetStatement(t, stmt, es.ident) {
+	for _, tc := range tests {
+		p := New(lexer.New(tc.input))
+		program := p.Parse()
+
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("Unexpected number of statements. expected=%d, got=%d", 1, len(program.Statements))
+		}
+
+		stmt := program.Statements[0]
+		if !testLetStatement(t, stmt, tc.ident) {
+			return
+		}
+
+		val := stmt.(*ast.LetStatement).Value
+		if !testLiteralExpression(t, val, tc.value) {
 			return
 		}
 	}
 }
 
 func TestReturnStatements(t *testing.T) {
-	input := `
-return 5;
-return 10;
-return 993322;
-`
-
-	p := New(lexer.New(input))
-	program := p.Parse()
-
-	checkParserErrors(t, p)
-
-	if len(program.Statements) != 3 {
-		t.Fatalf("Unexpected number of statements. expected=%d, got=%d", 3, len(program.Statements))
+	tests := []struct {
+		input string
+		val   any
+	}{
+		{"return 5;", 5},
+		{"return true;", true},
+		{"return foobar;", "foobar"},
 	}
 
-	for _, stmt := range program.Statements {
-		returnStmt, ok := stmt.(*ast.ReturnStatement)
-		if !ok {
-			t.Errorf("stmt not *ast.ReturnStatement. got=%T", stmt)
-			continue
+	for _, tc := range tests {
+		p := New(lexer.New(tc.input))
+		program := p.Parse()
+
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("Unexpected number of statements. expected=%d, got=%d", 1, len(program.Statements))
+		}
+
+		returnStmt, isReturn := program.Statements[0].(*ast.ReturnStatement)
+		if !isReturn {
+			t.Fatalf("program.Statements[0] is not *ast.ReturnStatement. got=%T", program.Statements[0])
 		}
 		if returnStmt.TokenLiteral() != "return" {
-			t.Errorf("returnStmt.TokenLiteral not 'return', got %q",
-				returnStmt.TokenLiteral())
+			t.Fatalf("returnStmt.TokenLiteral not 'return', got %q", returnStmt.TokenLiteral())
+		}
+		if !testLiteralExpression(t, returnStmt.ReturnValue, tc.val) {
+			return
 		}
 	}
 }
