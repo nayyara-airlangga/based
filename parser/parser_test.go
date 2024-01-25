@@ -287,6 +287,75 @@ func TestIfElseIfExpression(t *testing.T) {
 	}
 }
 
+func TestFunctionLiteral(t *testing.T) {
+	input := "fn(x, y) { x + y; }"
+
+	p := New(lexer.New(input))
+	program := p.Parse()
+
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Unexpected number of statements. expected=%d, got=%d", 1, len(program.Statements))
+	}
+
+	exprStmt, isExprStmt := program.Statements[0].(*ast.ExpressionStatement)
+	if !isExprStmt {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+
+	function, isFunction := exprStmt.Expression.(*ast.FunctionLiteral)
+	if !isFunction {
+		t.Fatalf("exprStmt.Expression is not *ast.FunctionLiteral. got=%T", exprStmt.Expression)
+	}
+	if len(function.Params) != 2 {
+		t.Fatalf("Unexpected number of parameters. expected=%d, got=%d", 2, len(function.Params))
+	}
+
+	testLiteralExpression(t, function.Params[0], "x")
+	testLiteralExpression(t, function.Params[1], "y")
+
+	if len(function.Body.Statements) != 1 {
+		t.Fatalf("Unexpected number of statements in Body.Statements. expected=%d, got=%d", 1, len(function.Body.Statements))
+	}
+
+	bodyStmt, isExprStmt := function.Body.Statements[0].(*ast.ExpressionStatement)
+	if !isExprStmt {
+		t.Fatalf("function.Body.Statements[0] is not ast.ExpressionStatement. got=%T", function.Body.Statements[0])
+	}
+
+	testInfixExpression(t, bodyStmt.Expression, "x", "+", "y")
+}
+
+func TestFunctionParams(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected []string
+	}{
+		{"fn() {};", []string{}},
+		{"fn(x) {};", []string{"x"}},
+		{"fn(x, y, z) {};", []string{"x", "y", "z"}},
+	}
+
+	for _, tc := range tests {
+		p := New(lexer.New(tc.input))
+		program := p.Parse()
+
+		checkParserErrors(t, p)
+
+		exprStmt := program.Statements[0].(*ast.ExpressionStatement)
+		function := exprStmt.Expression.(*ast.FunctionLiteral)
+
+		if len(function.Params) != len(tc.expected) {
+			t.Fatalf("Unexpected number of parameters. expected=%d, got=%d", len(tc.expected), len(function.Params))
+		}
+
+		for i, param := range tc.expected {
+			testLiteralExpression(t, function.Params[i], param)
+		}
+	}
+}
+
 func testIdentifier(t *testing.T, expr ast.Expression, value string) bool {
 	ident, isIdent := expr.(*ast.Identifier)
 	if !isIdent {
