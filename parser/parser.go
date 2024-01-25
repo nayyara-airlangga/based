@@ -55,6 +55,7 @@ func (p *Parser) nextToken() {
 
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l, errors: []string{}}
+
 	// Set curTok and peekTok
 	p.nextToken()
 	p.nextToken()
@@ -83,6 +84,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
 	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
+	p.registerInfix(token.LPAREN, p.parseCallExpression)
+
 	return p
 }
 
@@ -313,6 +316,42 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 	return params
 }
 
+func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
+	call := &ast.CallExpression{Token: p.curTok, Function: function}
+	call.Args = p.parseCallArgs()
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	return call
+}
+
+func (p *Parser) parseCallArgs() []ast.Expression {
+	args := []ast.Expression{}
+
+	if p.peekTokenIs(token.RPAREN) {
+		return args
+	}
+
+	p.nextToken()
+
+	args = append(args, p.parseExpression(LOWEST))
+
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken()
+
+		if p.peekTokenIs(token.RPAREN) {
+			return args
+		} else {
+			p.nextToken()
+			args = append(args, p.parseExpression(LOWEST))
+		}
+	}
+
+	return args
+}
+
 func (p *Parser) parsePrefixExpression() ast.Expression {
 	expr := &ast.PrefixExpression{Token: p.curTok, Operator: p.curTok.Literal}
 
@@ -349,6 +388,8 @@ func getPrecedence(t token.TokenType) precedence {
 		return SUM
 	case token.ASTERISK, token.SLASH:
 		return PRODUCT
+	case token.LPAREN:
+		return CALL
 	default:
 		return LOWEST
 	}

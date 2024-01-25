@@ -356,6 +356,82 @@ func TestFunctionParams(t *testing.T) {
 	}
 }
 
+func TestCallExpression(t *testing.T) {
+	input := `add(1, 2 * 3, 4 + 5);`
+
+	p := New(lexer.New(input))
+	program := p.Parse()
+
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Unexpected number of statements. expected=%d, got=%d", 1, len(program.Statements))
+	}
+
+	exprStmt, isExprStmt := program.Statements[0].(*ast.ExpressionStatement)
+	if !isExprStmt {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+	}
+
+	call, isCall := exprStmt.Expression.(*ast.CallExpression)
+	if !isCall {
+		t.Fatalf("exprStmt.Expression is not *ast.CallExpression. got=%T", exprStmt.Expression)
+	}
+	if !testIdentifier(t, call.Function, "add") {
+		return
+	}
+	if len(call.Args) != 3 {
+		t.Fatalf("Unexpected number of arguments. expected=%d, got=%d", 3, len(call.Args))
+	}
+
+	testIntegerLiteral(t, call.Args[0], 1)
+	testInfixExpression(t, call.Args[1], 2, "*", 3)
+	testInfixExpression(t, call.Args[2], 4, "+", 5)
+}
+
+func TestCallArgs(t *testing.T) {
+	tests := []struct {
+		input string
+		ident string
+		args  []string
+	}{
+		{"add();", "add", []string{}},
+		{"add(1);", "add", []string{"1"}},
+		{"add(1, 2 * 3, 4 + 5);", "add", []string{"1", "(2 * 3)", "(4 + 5)"}},
+		{`
+		add(
+		  1, 
+		  2 * 3,
+		  4 + 5,
+		);`, "add", []string{"1", "(2 * 3)", "(4 + 5)"}},
+	}
+
+	for _, tc := range tests {
+		p := New(lexer.New(tc.input))
+		program := p.Parse()
+
+		checkParserErrors(t, p)
+
+		exprStmt := program.Statements[0].(*ast.ExpressionStatement)
+		call, isCall := exprStmt.Expression.(*ast.CallExpression)
+		if !isCall {
+			t.Fatalf("exptStmt.Expression is not ast.CallExpression. got=%T", exprStmt.Expression)
+		}
+		if !testIdentifier(t, call.Function, tc.ident) {
+			return
+		}
+		if len(call.Args) != len(tc.args) {
+			t.Fatalf("Unexpected number of arguments. expected=%d, got=%d", len(tc.args), len(call.Args))
+		}
+
+		for i, arg := range tc.args {
+			if call.Args[i].String() != arg {
+				t.Errorf("Unexpected value for argument %d. expected=%q, got=%q", i, arg, call.Args[i].String())
+			}
+		}
+	}
+}
+
 func testIdentifier(t *testing.T, expr ast.Expression, value string) bool {
 	ident, isIdent := expr.(*ast.Identifier)
 	if !isIdent {
@@ -624,6 +700,25 @@ func TestOperatorPrecedences(t *testing.T) {
 		{
 			"!(true == true)",
 			"(!(true == true))",
+		},
+		{
+			"a + add(b * c) + d",
+			"((a + add((b * c))) + d)",
+		},
+		{
+			`add(
+				a, 
+				b, 
+				1, 
+				2 * 3, 
+				4 + 5, 
+				add(6, 7 * 8),
+			);`,
+			"add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+		},
+		{
+			"add(a + b + c * d / f + g)",
+			"add((((a + b) + ((c * d) / f)) + g))",
 		},
 	}
 
