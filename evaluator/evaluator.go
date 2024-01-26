@@ -1,9 +1,25 @@
 package evaluator
 
 import (
+	"fmt"
+
 	"github.com/nayyara-airlangga/basedlang/ast"
 	"github.com/nayyara-airlangga/basedlang/object"
 )
+
+const (
+	ErrUnsupportedOperatorInfix  = "unsupported operator: %s %s %s"
+	ErrUnsupportedOperatorPrefix = "unsupported operator: %s%s"
+	ErrTypeMismatch              = "type mismatch: %s %s %s"
+)
+
+func newError(format string, args ...any) *object.Error {
+	return &object.Error{Message: fmt.Sprintf(format, args...)}
+}
+
+func isError(obj object.Object) bool {
+	return obj != nil && obj.Type() == object.ERROR
+}
 
 var (
 	NULL  = &object.Null{}
@@ -22,6 +38,9 @@ func Eval(n ast.Node) object.Object {
 		return evalBlockStatements(n.Statements)
 	case *ast.ReturnStatement:
 		val := Eval(n.ReturnValue)
+		if isError(val) {
+			return val
+		}
 		return &object.ReturnValue{Value: val}
 	// Expressions
 	case *ast.IntLiteral:
@@ -30,10 +49,19 @@ func Eval(n ast.Node) object.Object {
 		return nativeBoolToObjBool(n.Value)
 	case *ast.PrefixExpression:
 		right := Eval(n.Right)
+		if isError(right) {
+			return right
+		}
 		return evalPrefixExpression(n.Operator, right)
 	case *ast.InfixExpression:
 		left := Eval(n.Left)
+		if isError(left) {
+			return left
+		}
 		right := Eval(n.Right)
+		if isError(right) {
+			return right
+		}
 		return evalInfixExpression(n.Operator, left, right)
 	case *ast.IfExpression:
 		return evalIfExpression(n)
@@ -44,6 +72,10 @@ func Eval(n ast.Node) object.Object {
 
 func evalIfExpression(ie *ast.IfExpression) object.Object {
 	cond := Eval(ie.Condition)
+
+	if isError(cond) {
+		return cond
+	}
 
 	if isTruthy(cond) {
 		return Eval(ie.Body)
@@ -79,8 +111,10 @@ func evalInfixExpression(op string, left, right object.Object) object.Object {
 		return nativeBoolToObjBool(left == right)
 	case op == "!=":
 		return nativeBoolToObjBool(left != right)
+	case left.Type() != right.Type():
+		return newError(ErrTypeMismatch, left.Type(), op, right.Type())
 	default:
-		return NULL
+		return newError(ErrUnsupportedOperatorInfix, left.Type(), op, right.Type())
 	}
 }
 
@@ -112,7 +146,7 @@ func evalIntegerInfixExpression(op string, left, right object.Object) object.Obj
 	case "!=":
 		return nativeBoolToObjBool(leftInt.Value != rightInt.Value)
 	default:
-		return NULL
+		return newError(ErrUnsupportedOperatorInfix, left.Type(), op, right.Type())
 	}
 }
 
@@ -123,7 +157,7 @@ func evalPrefixExpression(op string, right object.Object) object.Object {
 	case "-":
 		return evalMinusPrefixOperatorExpression(right)
 	default:
-		return NULL
+		return newError(ErrUnsupportedOperatorPrefix, op, right.Type())
 	}
 }
 
@@ -146,13 +180,16 @@ func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 		intObj.Value = -intObj.Value
 		return intObj
 	}
-	return NULL
+	return newError(ErrUnsupportedOperatorPrefix, "-", right.Type())
 }
 
 func evalProgram(stmts []ast.Statement) (res object.Object) {
 	for _, s := range stmts {
 		res = Eval(s)
 
+		if err, isErr := res.(*object.Error); isErr {
+			return err
+		}
 		if rv, isRetVal := res.(*object.ReturnValue); isRetVal {
 			return rv.Value
 		}
@@ -163,6 +200,10 @@ func evalProgram(stmts []ast.Statement) (res object.Object) {
 func evalBlockStatements(stmts []ast.Statement) (res object.Object) {
 	for _, s := range stmts {
 		res = Eval(s)
+
+		if err, isErr := res.(*object.Error); isErr {
+			return err
+		}
 
 		if rv, isRetVal := res.(*object.ReturnValue); isRetVal {
 			return rv

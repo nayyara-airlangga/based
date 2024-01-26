@@ -8,6 +8,60 @@ import (
 	"github.com/nayyara-airlangga/basedlang/parser"
 )
 
+func TestErrorHandling(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{
+			"5 + true;",
+			"type mismatch: INTEGER + BOOLEAN",
+		},
+		{
+			"5 + true; 5;",
+			"type mismatch: INTEGER + BOOLEAN",
+		},
+		{
+			"-true",
+			"unsupported operator: -BOOLEAN",
+		},
+		{
+			"true + false;",
+			"unsupported operator: BOOLEAN + BOOLEAN",
+		},
+		{
+			"5; true + false; 5",
+			"unsupported operator: BOOLEAN + BOOLEAN",
+		}, {
+			"if (10 > 1) { true + false; }",
+			"unsupported operator: BOOLEAN + BOOLEAN",
+		},
+		{
+			`
+				if (10 > 1) {
+				if (10 > 1) {
+				return true + false;
+				}
+				return 1;
+				}
+				`,
+			"unsupported operator: BOOLEAN + BOOLEAN",
+		},
+	}
+
+	for _, tc := range tests {
+		evaluated := testEval(tc.input)
+		err, isErr := evaluated.(*object.Error)
+		if !isErr {
+			t.Errorf("no error returned. got=%T (%+v)", evaluated, evaluated)
+			continue
+		}
+		if err.Message != tc.expected {
+			t.Errorf("wrong error message. expected=%s, got=%s", tc.expected, err.Message)
+		}
+	}
+}
+
 func TestEvalIntegerExpression(t *testing.T) {
 	tests := []struct {
 		input    string

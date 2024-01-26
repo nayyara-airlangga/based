@@ -5,6 +5,7 @@ import "fmt"
 type ObjectType string
 
 const (
+	ERROR        ObjectType = "ERROR"
 	INTEGER      ObjectType = "INTEGER"
 	BOOLEAN      ObjectType = "BOOLEAN"
 	NULL         ObjectType = "NULL"
@@ -15,6 +16,13 @@ type Object interface {
 	Type() ObjectType
 	Inspect() string
 }
+
+type Error struct {
+	Message string
+}
+
+func (e *Error) Type() ObjectType { return ERROR }
+func (e *Error) Inspect() string  { return "ERROR: " + e.Message }
 
 type Integer struct {
 	Value int64
