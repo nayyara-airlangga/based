@@ -49,6 +49,7 @@ func evalIntegerInfixExpression(op string, left, right object.Object) object.Obj
 	rightInt := right.(*object.Integer)
 
 	switch op {
+	// Arithmetics
 	case "*":
 		return &object.Integer{Value: leftInt.Value * rightInt.Value}
 	case "/":
@@ -57,6 +58,19 @@ func evalIntegerInfixExpression(op string, left, right object.Object) object.Obj
 		return &object.Integer{Value: leftInt.Value + rightInt.Value}
 	case "-":
 		return &object.Integer{Value: leftInt.Value - rightInt.Value}
+	// Relational
+	case "<":
+		return nativeBoolToObjBool(leftInt.Value < rightInt.Value)
+	case "<=":
+		return nativeBoolToObjBool(leftInt.Value <= rightInt.Value)
+	case ">":
+		return nativeBoolToObjBool(leftInt.Value > rightInt.Value)
+	case ">=":
+		return nativeBoolToObjBool(leftInt.Value >= rightInt.Value)
+	case "==":
+		return nativeBoolToObjBool(leftInt.Value == rightInt.Value)
+	case "!=":
+		return nativeBoolToObjBool(leftInt.Value != rightInt.Value)
 	default:
 		return NULL
 	}
