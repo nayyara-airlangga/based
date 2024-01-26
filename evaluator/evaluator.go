@@ -38,7 +38,7 @@ func Eval(n ast.Node, env *object.Environment) object.Object {
 		if isError(val) {
 			return val
 		}
-		return env.Set(n.Name.Value, val)
+		env.Set(n.Name.Value, val)
 	case *ast.ExpressionStatement:
 		return Eval(n.Expression, env)
 	case *ast.BlockStatement:
@@ -77,6 +77,8 @@ func Eval(n ast.Node, env *object.Environment) object.Object {
 	default:
 		return NULL
 	}
+
+	return nil
 }
 
 func evalIdentifier(id *ast.Identifier, env *object.Environment) object.Object {
