@@ -39,6 +39,11 @@ func evalInfixExpression(op string, left, right object.Object) object.Object {
 	switch {
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
 		return evalIntegerInfixExpression(op, left, right)
+	// The following cases are only for boolean expressions
+	case op == "==":
+		return nativeBoolToObjBool(left == right)
+	case op == "!=":
+		return nativeBoolToObjBool(left != right)
 	default:
 		return NULL
 	}
