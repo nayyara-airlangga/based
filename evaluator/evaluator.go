@@ -15,11 +15,14 @@ func Eval(n ast.Node) object.Object {
 	switch n := n.(type) {
 	// Statements
 	case *ast.Program:
-		return evalStatements(n.Statements)
+		return evalProgram(n.Statements)
 	case *ast.ExpressionStatement:
 		return Eval(n.Expression)
 	case *ast.BlockStatement:
-		return evalStatements(n.Statements)
+		return evalBlockStatements(n.Statements)
+	case *ast.ReturnStatement:
+		val := Eval(n.ReturnValue)
+		return &object.ReturnValue{Value: val}
 	// Expressions
 	case *ast.IntLiteral:
 		return &object.Integer{Value: n.Value}
@@ -146,9 +149,24 @@ func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	return NULL
 }
 
-func evalStatements(stmts []ast.Statement) (res object.Object) {
+func evalProgram(stmts []ast.Statement) (res object.Object) {
 	for _, s := range stmts {
 		res = Eval(s)
+
+		if rv, isRetVal := res.(*object.ReturnValue); isRetVal {
+			return rv.Value
+		}
+	}
+	return res
+}
+
+func evalBlockStatements(stmts []ast.Statement) (res object.Object) {
+	for _, s := range stmts {
+		res = Eval(s)
+
+		if rv, isRetVal := res.(*object.ReturnValue); isRetVal {
+			return rv
+		}
 	}
 	return res
 }
