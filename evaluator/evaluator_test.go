@@ -47,6 +47,10 @@ func TestErrorHandling(t *testing.T) {
 				`,
 			"unsupported operator: BOOLEAN + BOOLEAN",
 		},
+		{
+			"foobar",
+			"identifier not found: foobar",
+		},
 	}
 
 	for _, tc := range tests {
@@ -59,6 +63,23 @@ func TestErrorHandling(t *testing.T) {
 		if err.Message != tc.expected {
 			t.Errorf("wrong error message. expected=%s, got=%s", tc.expected, err.Message)
 		}
+	}
+}
+
+func TestLetStatements(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"let a = 5; a;", 5},
+		{"let a = 5 * 5; a;", 25},
+		{"let a = 5; let b = a; b;", 5},
+		{"let a = 5; let b = a; let c = a + b + 5; c;", 15},
+	}
+
+	for _, tc := range tests {
+		evaluated := testEval(tc.input)
+		testIntegerObject(t, evaluated, tc.expected)
 	}
 }
 
@@ -275,6 +296,7 @@ func testBooleanObject(t *testing.T, obj object.Object, expected bool) bool {
 func testEval(input string) object.Object {
 	p := parser.New(lexer.New(input))
 	program := p.Parse()
+	env := object.NewEnvironment()
 
-	return Eval(program)
+	return Eval(program, env)
 }

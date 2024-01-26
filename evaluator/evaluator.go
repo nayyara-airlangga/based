@@ -11,6 +11,7 @@ const (
 	ErrUnsupportedOperatorInfix  = "unsupported operator: %s %s %s"
 	ErrUnsupportedOperatorPrefix = "unsupported operator: %s%s"
 	ErrTypeMismatch              = "type mismatch: %s %s %s"
+	ErrIdentifierNotFound        = "identifier not found: %s"
 )
 
 func newError(format string, args ...any) *object.Error {
@@ -27,62 +28,78 @@ var (
 	FALSE = &object.Boolean{Value: false}
 )
 
-func Eval(n ast.Node) object.Object {
+func Eval(n ast.Node, env *object.Environment) object.Object {
 	switch n := n.(type) {
 	// Statements
 	case *ast.Program:
-		return evalProgram(n.Statements)
+		return evalProgram(n.Statements, env)
+	case *ast.LetStatement:
+		val := Eval(n.Value, env)
+		if isError(val) {
+			return val
+		}
+		return env.Set(n.Name.Value, val)
 	case *ast.ExpressionStatement:
-		return Eval(n.Expression)
+		return Eval(n.Expression, env)
 	case *ast.BlockStatement:
-		return evalBlockStatements(n.Statements)
+		return evalBlockStatements(n.Statements, env)
 	case *ast.ReturnStatement:
-		val := Eval(n.ReturnValue)
+		val := Eval(n.ReturnValue, env)
 		if isError(val) {
 			return val
 		}
 		return &object.ReturnValue{Value: val}
-	// Expressions
+		// Expressions
+	case *ast.Identifier:
+		return evalIdentifier(n, env)
 	case *ast.IntLiteral:
 		return &object.Integer{Value: n.Value}
 	case *ast.Boolean:
 		return nativeBoolToObjBool(n.Value)
 	case *ast.PrefixExpression:
-		right := Eval(n.Right)
+		right := Eval(n.Right, env)
 		if isError(right) {
 			return right
 		}
 		return evalPrefixExpression(n.Operator, right)
 	case *ast.InfixExpression:
-		left := Eval(n.Left)
+		left := Eval(n.Left, env)
 		if isError(left) {
 			return left
 		}
-		right := Eval(n.Right)
+		right := Eval(n.Right, env)
 		if isError(right) {
 			return right
 		}
 		return evalInfixExpression(n.Operator, left, right)
 	case *ast.IfExpression:
-		return evalIfExpression(n)
+		return evalIfExpression(n, env)
 	default:
 		return NULL
 	}
 }
 
-func evalIfExpression(ie *ast.IfExpression) object.Object {
-	cond := Eval(ie.Condition)
+func evalIdentifier(id *ast.Identifier, env *object.Environment) object.Object {
+	val, exists := env.Get(id.Value)
+	if !exists {
+		return newError(ErrIdentifierNotFound, id.Value)
+	}
+	return val
+}
+
+func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
+	cond := Eval(ie.Condition, env)
 
 	if isError(cond) {
 		return cond
 	}
 
 	if isTruthy(cond) {
-		return Eval(ie.Body)
+		return Eval(ie.Body, env)
 	} else if ie.Else != nil {
 		switch el := ie.Else.(type) {
 		case *ast.BlockStatement, *ast.IfExpression:
-			return Eval(el)
+			return Eval(el, env)
 		default:
 			return NULL
 		}
@@ -183,9 +200,9 @@ func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	return newError(ErrUnsupportedOperatorPrefix, "-", right.Type())
 }
 
-func evalProgram(stmts []ast.Statement) (res object.Object) {
+func evalProgram(stmts []ast.Statement, env *object.Environment) (res object.Object) {
 	for _, s := range stmts {
-		res = Eval(s)
+		res = Eval(s, env)
 
 		if err, isErr := res.(*object.Error); isErr {
 			return err
@@ -197,9 +214,9 @@ func evalProgram(stmts []ast.Statement) (res object.Object) {
 	return res
 }
 
-func evalBlockStatements(stmts []ast.Statement) (res object.Object) {
+func evalBlockStatements(stmts []ast.Statement, env *object.Environment) (res object.Object) {
 	for _, s := range stmts {
-		res = Eval(s)
+		res = Eval(s, env)
 
 		if err, isErr := res.(*object.Error); isErr {
 			return err

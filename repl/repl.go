@@ -7,6 +7,7 @@ import (
 
 	"github.com/nayyara-airlangga/basedlang/evaluator"
 	"github.com/nayyara-airlangga/basedlang/lexer"
+	"github.com/nayyara-airlangga/basedlang/object"
 	"github.com/nayyara-airlangga/basedlang/parser"
 )
 
@@ -14,6 +15,7 @@ const prompt string = ">> "
 
 func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
+	env := object.NewEnvironment()
 
 	for {
 		fmt.Fprint(out, prompt)
@@ -32,7 +34,7 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		if evaluated := evaluator.Eval(program); evaluated != nil {
+		if evaluated := evaluator.Eval(program, env); evaluated != nil {
 			io.WriteString(out, evaluated.Inspect())
 			io.WriteString(out, "\n")
 		}
