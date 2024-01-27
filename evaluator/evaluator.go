@@ -12,6 +12,7 @@ const (
 	ErrUnsupportedOperatorPrefix = "unsupported operator: %s%s"
 	ErrTypeMismatch              = "type mismatch: %s %s %s"
 	ErrIdentifierNotFound        = "identifier not found: %s"
+	ErrNotAFunction              = "not a function: %s"
 )
 
 func newError(format string, args ...any) *object.Error {
@@ -76,11 +77,61 @@ func Eval(n ast.Node, env *object.Environment) object.Object {
 		return evalIfExpression(n, env)
 	case *ast.FunctionLiteral:
 		return &object.Function{Params: n.Params, Body: n.Body, Env: env}
+	case *ast.CallExpression:
+		f := Eval(n.Function, env)
+		if isError(f) {
+			return f
+		}
+		args := evalExpressions(n.Args, env)
+		if len(args) == 1 && isError(args[0]) {
+			return args[0]
+		}
+		return applyFunction(f, args)
 	default:
 		return NULL
 	}
 
 	return nil
+}
+
+func applyFunction(f object.Object, args []object.Object) object.Object {
+	fun, isFunc := f.(*object.Function)
+	if !isFunc {
+		return newError(ErrNotAFunction, fun.Type())
+	}
+
+	extEnv := extendFunctionEnv(fun, args)
+	evaluated := Eval(fun.Body, extEnv)
+	return unwrapReturnValue(evaluated)
+}
+
+func extendFunctionEnv(
+	fn *object.Function,
+	args []object.Object,
+) *object.Environment {
+	env := object.NewLocalEnvironment(fn.Env)
+	for i, arg := range fn.Params {
+		env.Set(arg.Value, args[i])
+	}
+	return env
+}
+func unwrapReturnValue(obj object.Object) object.Object {
+	if rv, isRetVal := obj.(*object.ReturnValue); isRetVal {
+		return rv.Value
+	}
+	return obj
+}
+
+func evalExpressions(exprs []ast.Expression, env *object.Environment) (result []object.Object) {
+	for _, e := range exprs {
+		evaluated := Eval(e, env)
+		if isError(evaluated) {
+			return []object.Object{evaluated}
+		}
+		result = append(result, evaluated)
+	}
+
+	return
 }
 
 func evalIdentifier(id *ast.Identifier, env *object.Environment) object.Object {
