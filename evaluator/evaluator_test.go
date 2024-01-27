@@ -66,6 +66,25 @@ func TestErrorHandling(t *testing.T) {
 	}
 }
 
+func TestFunctionLiteral(t *testing.T) {
+	input := "fn(x) { x + 2; };"
+	evaluated := testEval(input)
+	fn, isFunc := evaluated.(*object.Function)
+	if !isFunc {
+		t.Fatalf("object is not Function. got=%T (%+v)", evaluated, evaluated)
+	}
+	if len(fn.Params) != 1 {
+		t.Fatalf("incorrect number of params. expected=%d, got=%d (%+v)", 1, len(fn.Params), fn.Params)
+	}
+	if fn.Params[0].String() != "x" {
+		t.Fatalf("incorrect parameter. expected='%s' got=%q", "x", fn.Params[0])
+	}
+	expectedBody := "(x + 2)"
+	if fn.Body.String() != expectedBody {
+		t.Fatalf("incorrect function body. expected=%q got=%q", expectedBody, fn.Body.String())
+	}
+}
+
 func TestLetStatements(t *testing.T) {
 	tests := []struct {
 		input    string

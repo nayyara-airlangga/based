@@ -1,6 +1,11 @@
 package object
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+
+	"github.com/nayyara-airlangga/basedlang/ast"
+)
 
 type ObjectType string
 
@@ -10,6 +15,7 @@ const (
 	BOOLEAN      ObjectType = "BOOLEAN"
 	NULL         ObjectType = "NULL"
 	RETURN_VALUE ObjectType = "RETURN_VALUE"
+	FUNCTION     ObjectType = "FUNCTION"
 )
 
 type Object interface {
@@ -49,3 +55,30 @@ type ReturnValue struct {
 
 func (rv *ReturnValue) Type() ObjectType { return RETURN_VALUE }
 func (rv *ReturnValue) Inspect() string  { return rv.Value.Inspect() }
+
+type Function struct {
+	Params []*ast.Identifier
+	Body   *ast.BlockStatement
+	Env    *Environment
+}
+
+func (f *Function) Type() ObjectType { return FUNCTION }
+func (f *Function) Inspect() string {
+	var out bytes.Buffer
+
+	out.WriteString("fn")
+	out.WriteString("(")
+
+	for i, p := range f.Params {
+		out.WriteString(p.String())
+		if i+1 != len(f.Params) {
+			out.WriteString(", ")
+		}
+	}
+
+	out.WriteString(") {\n")
+	out.WriteString(f.Body.String())
+	out.WriteString("\n}")
+
+	return out.String()
+}

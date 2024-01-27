@@ -74,6 +74,8 @@ func Eval(n ast.Node, env *object.Environment) object.Object {
 		return evalInfixExpression(n.Operator, left, right)
 	case *ast.IfExpression:
 		return evalIfExpression(n, env)
+	case *ast.FunctionLiteral:
+		return &object.Function{Params: n.Params, Body: n.Body, Env: env}
 	default:
 		return NULL
 	}
