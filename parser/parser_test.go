@@ -88,6 +88,24 @@ func TestBooleanExpression(t *testing.T) {
 	}
 }
 
+func TestStringExpression(t *testing.T) {
+	input := `"hello world";`
+
+	p := New(lexer.New(input))
+	program := p.Parse()
+
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	str, ok := stmt.Expression.(*ast.String)
+	if !ok {
+		t.Fatalf("stmt.Expression is not *ast.String. got=%T", stmt.Expression)
+	}
+	if str.Value != "hello world" {
+		t.Errorf("incorrect str.Value. expected=%q, got=%q", "hello world", str.Value)
+	}
+}
+
 func TestIfExpression(t *testing.T) {
 	input := `
 	if (x < y) {
