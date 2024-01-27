@@ -5,8 +5,9 @@ const (
 	EOF     TokenType = "EOF"
 
 	// Identifiers and literals
-	IDENT TokenType = "IDENT" // AKA variable names
-	INT   TokenType = "INT"   // integer numbers
+	IDENT  TokenType = "IDENT" // AKA variable names
+	INT    TokenType = "INT"   // integer numbers
+	STRING TokenType = "STRING"
 
 	// Operators
 	ASSIGN   TokenType = "="

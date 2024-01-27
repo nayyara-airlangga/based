@@ -28,6 +28,8 @@ if (5 < 10) {
 10 != 9;
 10 <= 12;
 10 >= 8;
+"foobar"
+"foo bar"
 `
 
 	expectedTokens := []struct {
@@ -115,6 +117,8 @@ if (5 < 10) {
 		{token.GTE, ">="},
 		{token.INT, "8"},
 		{token.SEMICOLON, ";"},
+		{token.STRING, "foobar"},
+		{token.STRING, "foo bar"},
 		{token.EOF, ""},
 	}
 
