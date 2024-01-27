@@ -22,6 +22,10 @@ func TestErrorHandling(t *testing.T) {
 			"type mismatch: INTEGER + BOOLEAN",
 		},
 		{
+			`"Hello" + 5`,
+			"type mismatch: STRING + INTEGER",
+		},
+		{
 			"-true",
 			"unsupported operator: -BOOLEAN",
 		},
@@ -46,6 +50,10 @@ func TestErrorHandling(t *testing.T) {
 				}
 				`,
 			"unsupported operator: BOOLEAN + BOOLEAN",
+		},
+		{
+			`"Hello" - "World"`,
+			"unsupported operator: STRING - STRING",
 		},
 		{
 			"foobar",
@@ -186,6 +194,18 @@ func TestEvalString(t *testing.T) {
 	evaluated := testEval(input)
 	str, isStr := evaluated.(*object.String)
 	if !isStr {
+		t.Fatalf("object is not String. got=%T (%+v)", evaluated, evaluated)
+	}
+	if str.Value != "Hello World!" {
+		t.Errorf("incorrect String value. expected=%q, got=%q", "Hello World!", str.Value)
+	}
+}
+
+func TestStringConcatenation(t *testing.T) {
+	input := `"Hello" + " " + "World!"`
+	evaluated := testEval(input)
+	str, ok := evaluated.(*object.String)
+	if !ok {
 		t.Fatalf("object is not String. got=%T (%+v)", evaluated, evaluated)
 	}
 	if str.Value != "Hello World!" {

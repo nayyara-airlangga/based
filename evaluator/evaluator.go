@@ -180,6 +180,8 @@ func evalInfixExpression(op string, left, right object.Object) object.Object {
 	switch {
 	case left.Type() == object.INTEGER && right.Type() == object.INTEGER:
 		return evalIntegerInfixExpression(op, left, right)
+	case left.Type() == object.STRING && right.Type() == object.STRING:
+		return evalStringInfixExpression(op, left, right)
 	// The following cases are only for boolean expressions
 	case op == "==":
 		return nativeBoolToObjBool(left == right)
@@ -222,6 +224,17 @@ func evalIntegerInfixExpression(op string, left, right object.Object) object.Obj
 	default:
 		return newError(ErrUnsupportedOperatorInfix, left.Type(), op, right.Type())
 	}
+}
+
+func evalStringInfixExpression(op string, left, right object.Object) object.Object {
+	if op != "+" {
+		return newError(ErrUnsupportedOperatorInfix, left.Type(), op, right.Type())
+	}
+
+	leftVal := left.(*object.String).Value
+	rightVal := right.(*object.String).Value
+
+	return &object.String{Value: leftVal + rightVal}
 }
 
 func evalPrefixExpression(op string, right object.Object) object.Object {
