@@ -13,6 +13,7 @@ const (
 	ERROR        ObjectType = "ERROR"
 	INTEGER      ObjectType = "INTEGER"
 	BOOLEAN      ObjectType = "BOOLEAN"
+	STRING       ObjectType = "STRING"
 	NULL         ObjectType = "NULL"
 	RETURN_VALUE ObjectType = "RETURN_VALUE"
 	FUNCTION     ObjectType = "FUNCTION"
@@ -43,6 +44,13 @@ type Boolean struct {
 
 func (b *Boolean) Type() ObjectType { return BOOLEAN }
 func (b *Boolean) Inspect() string  { return fmt.Sprintf("%t", b.Value) }
+
+type String struct {
+	Value string
+}
+
+func (s *String) Type() ObjectType { return STRING }
+func (s *String) Inspect() string  { return s.Value }
 
 type Null struct{}
 

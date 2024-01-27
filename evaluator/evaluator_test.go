@@ -181,6 +181,18 @@ func TestEvalBooleanExpression(t *testing.T) {
 	}
 }
 
+func TestEvalString(t *testing.T) {
+	input := `"Hello World!"`
+	evaluated := testEval(input)
+	str, isStr := evaluated.(*object.String)
+	if !isStr {
+		t.Fatalf("object is not String. got=%T (%+v)", evaluated, evaluated)
+	}
+	if str.Value != "Hello World!" {
+		t.Errorf("incorrect String value. expected=%q, got=%q", "Hello World!", str.Value)
+	}
+}
+
 func TestIfElseExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
