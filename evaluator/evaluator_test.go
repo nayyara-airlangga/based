@@ -91,6 +91,11 @@ func TestBuiltInFunctions(t *testing.T) {
 		{`len("four")`, 4},
 		{`len("hello world")`, 11},
 		{`len(1)`, "invalid argument: 1 (INTEGER) not supported for len"},
+		{`append([], 1)`, []int{1}},
+		{`append([], 1, 2)`, []int{1, 2}},
+		{`append()`, "invalid argument: not enough arguments for append, expected>=1, got=0"},
+		{`append(1, 2)`, "invalid argument: first argument for append must be an array. got=1 (INTEGER)"},
+		{`len("one", "two")`, "wrong number of arguments. got=2, want=1"},
 		{`len("one", "two")`, "wrong number of arguments. got=2, want=1"},
 	}
 
@@ -107,6 +112,22 @@ func TestBuiltInFunctions(t *testing.T) {
 			}
 			if errObj.Message != expected {
 				t.Errorf("wrong error message. expected=%q, got=%q", expected, errObj.Message)
+			}
+		case []int:
+			arr, isArr := evaluated.(*object.Array)
+			if !isArr {
+				t.Errorf("obj not Array. got=%T (%+v)", evaluated, evaluated)
+				continue
+			}
+
+			if len(arr.Elems) != len(expected) {
+				t.Errorf("incorrect number of elements. expected=%d, got=%d",
+					len(expected), len(arr.Elems))
+				continue
+			}
+
+			for i, expectedElem := range expected {
+				testIntegerObject(t, arr.Elems[i], int64(expectedElem))
 			}
 		}
 	}
