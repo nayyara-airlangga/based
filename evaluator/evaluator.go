@@ -10,6 +10,8 @@ import (
 const (
 	ErrUnsupportedOperatorInfix  = "unsupported operator: %s %s %s"
 	ErrUnsupportedOperatorPrefix = "unsupported operator: %s%s"
+	ErrUnsupportedOperatorIndex  = "unsupported operator: index not supported on %s (%s)"
+	ErrInvalidIndex              = "invalid argument: index %s (%s) is not an integer"
 	ErrTypeMismatch              = "type mismatch: %s %s %s"
 	ErrIdentifierNotFound        = "identifier not found: %s"
 	ErrNotAFunction              = "not a function: %s"
@@ -66,6 +68,16 @@ func Eval(n ast.Node, env *object.Environment) object.Object {
 			return elems[0]
 		}
 		return &object.Array{Elems: elems}
+	case *ast.IndexExpression:
+		left := Eval(n.Left, env)
+		if isError(left) {
+			return left
+		}
+		idx := Eval(n.Index, env)
+		if isError(idx) {
+			return idx
+		}
+		return evalIndexExpression(left, idx)
 	case *ast.PrefixExpression:
 		right := Eval(n.Right, env)
 		if isError(right) {
@@ -151,6 +163,32 @@ func evalExpressions(exprs []ast.Expression, env *object.Environment) (result []
 	}
 
 	return
+}
+
+func evalIndexExpression(left, idx object.Object) object.Object {
+	switch {
+	case left.Type() == object.ARRAY:
+		if idx.Type() == object.INTEGER {
+			return evalArrayIndexExpression(left, idx)
+		}
+		return newError(ErrInvalidIndex, idx.Inspect(), idx.Type())
+	default:
+		return newError(ErrUnsupportedOperatorIndex, left.Inspect(), left.Type())
+	}
+}
+
+func evalArrayIndexExpression(left, idx object.Object) object.Object {
+	arr := left.(*object.Array)
+	i := idx.(*object.Integer).Value
+
+	if i < 0 {
+		i = int64(len(arr.Elems)) + i
+	}
+	if i < 0 || i > int64(len(arr.Elems)-1) {
+		return NULL
+	}
+
+	return arr.Elems[i]
 }
 
 func evalIdentifier(id *ast.Identifier, env *object.Environment) object.Object {
