@@ -160,14 +160,14 @@ func (ie *InfixExpression) String() string {
 	return out.String()
 }
 
-type Boolean struct {
+type BooleanLiteral struct {
 	Token token.Token
 	Value bool
 }
 
-func (b *Boolean) expressionNode()      {}
-func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
-func (b *Boolean) String() string       { return b.TokenLiteral() }
+func (b *BooleanLiteral) expressionNode()      {}
+func (b *BooleanLiteral) TokenLiteral() string { return b.Token.Literal }
+func (b *BooleanLiteral) String() string       { return b.TokenLiteral() }
 
 type IfExpression struct {
 	Token     token.Token
@@ -263,11 +263,11 @@ func (ce *CallExpression) String() string {
 	return out.String()
 }
 
-type String struct {
+type StringLiteral struct {
 	Token token.Token
 	Value string
 }
 
-func (s *String) expressionNode()      {}
-func (s *String) TokenLiteral() string { return s.Token.Literal }
-func (s *String) String() string       { return s.TokenLiteral() }
+func (s *StringLiteral) expressionNode()      {}
+func (s *StringLiteral) TokenLiteral() string { return s.Token.Literal }
+func (s *StringLiteral) String() string       { return s.TokenLiteral() }

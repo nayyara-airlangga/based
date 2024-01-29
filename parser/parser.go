@@ -212,11 +212,11 @@ func (p *Parser) parseIntLiteral() ast.Expression {
 }
 
 func (p *Parser) parseString() ast.Expression {
-	return &ast.String{Token: p.curTok, Value: p.curTok.Literal}
+	return &ast.StringLiteral{Token: p.curTok, Value: p.curTok.Literal}
 }
 
 func (p *Parser) parseBoolean() ast.Expression {
-	return &ast.Boolean{Token: p.curTok, Value: p.curTokenIs(token.TRUE)}
+	return &ast.BooleanLiteral{Token: p.curTok, Value: p.curTokenIs(token.TRUE)}
 }
 
 func (p *Parser) parseGroupedExpression() ast.Expression {

@@ -82,7 +82,7 @@ func TestBooleanExpression(t *testing.T) {
 			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
 		}
 
-		if !testBoolean(t, stmt.Expression, tc.expected) {
+		if !testBooleanLiteral(t, stmt.Expression, tc.expected) {
 			return
 		}
 	}
@@ -97,9 +97,9 @@ func TestStringExpression(t *testing.T) {
 	checkParserErrors(t, p)
 
 	stmt := program.Statements[0].(*ast.ExpressionStatement)
-	str, ok := stmt.Expression.(*ast.String)
+	str, ok := stmt.Expression.(*ast.StringLiteral)
 	if !ok {
-		t.Fatalf("stmt.Expression is not *ast.String. got=%T", stmt.Expression)
+		t.Fatalf("stmt.Expression is not *ast.StringLiteral. got=%T", stmt.Expression)
 	}
 	if str.Value != "hello world" {
 		t.Errorf("incorrect str.Value. expected=%q, got=%q", "hello world", str.Value)
@@ -486,10 +486,10 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 	return true
 }
 
-func testBoolean(t *testing.T, expr ast.Expression, expected bool) bool {
-	bo, isBool := expr.(*ast.Boolean)
+func testBooleanLiteral(t *testing.T, expr ast.Expression, expected bool) bool {
+	bo, isBool := expr.(*ast.BooleanLiteral)
 	if !isBool {
-		t.Errorf("expr is not *ast.Boolean. got=%T", expr)
+		t.Errorf("expr is not *ast.BooleanLiteral. got=%T", expr)
 		return false
 	}
 	if bo.Value != expected {
@@ -513,7 +513,7 @@ func testLiteralExpression(t *testing.T, expr ast.Expression, expected any) bool
 	case string:
 		return testIdentifier(t, expr, eVal)
 	case bool:
-		return testBoolean(t, expr, eVal)
+		return testBooleanLiteral(t, expr, eVal)
 	default:
 		t.Errorf("Unhandled type for expr. got=%T", expr)
 		return false
