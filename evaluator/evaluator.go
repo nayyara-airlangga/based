@@ -60,6 +60,12 @@ func Eval(n ast.Node, env *object.Environment) object.Object {
 		return nativeBoolToObjBool(n.Value)
 	case *ast.StringLiteral:
 		return &object.String{Value: n.Value}
+	case *ast.ArrayLiteral:
+		elems := evalExpressions(n.Elems, env)
+		if len(elems) == 1 && isError(elems[0]) {
+			return elems[0]
+		}
+		return &object.Array{Elems: elems}
 	case *ast.PrefixExpression:
 		right := Eval(n.Right, env)
 		if isError(right) {

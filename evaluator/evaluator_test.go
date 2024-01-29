@@ -104,6 +104,22 @@ func TestBuiltInFunctions(t *testing.T) {
 	}
 }
 
+func TestArrayLiterals(t *testing.T) {
+	input := "[1, 2 * 2, 3 + -4, true];"
+	evaluated := testEval(input)
+	result, ok := evaluated.(*object.Array)
+	if !ok {
+		t.Fatalf("object is not Array. got=%T (%+v)", evaluated, evaluated)
+	}
+	if len(result.Elems) != 4 {
+		t.Fatalf("incorrect number of elements. expected=%d, got=%d", 4, len(result.Elems))
+	}
+	testIntegerObject(t, result.Elems[0], 1)
+	testIntegerObject(t, result.Elems[1], 4)
+	testIntegerObject(t, result.Elems[2], -1)
+	testBooleanObject(t, result.Elems[3], true)
+}
+
 func TestFunctionLiteral(t *testing.T) {
 	input := "fn(x) { x + 2; };"
 	evaluated := testEval(input)
