@@ -59,6 +59,14 @@ func TestErrorHandling(t *testing.T) {
 			"foobar",
 			"identifier not found: foobar",
 		},
+		{
+			`999[1]`,
+			"unsupported operator: index not supported on 999 (INTEGER)",
+		},
+		{
+			`[1, 2, 3][true]`,
+			"invalid argument: index true (BOOLEAN) is not an integer",
+		},
 	}
 
 	for _, tc := range tests {
