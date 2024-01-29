@@ -26,6 +26,7 @@ const (
 	PRODUCT     // *
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
+	INDEX       // arr[1]
 )
 
 type Parser struct {
@@ -87,6 +88,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
+	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
 
 	return p
 }
@@ -342,6 +344,20 @@ func (p *Parser) parseArrayLiteral() ast.Expression {
 	return a
 }
 
+func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
+	idx := &ast.IndexExpression{Token: p.curTok, Left: left}
+
+	p.nextToken()
+
+	idx.Index = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
+
+	return idx
+}
+
 func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 	params := []*ast.Identifier{}
 
@@ -406,6 +422,8 @@ func getPrecedence(t token.TokenType) precedence {
 		return PRODUCT
 	case token.LPAREN:
 		return CALL
+	case token.LBRACKET:
+		return INDEX
 	default:
 		return LOWEST
 	}

@@ -127,6 +127,25 @@ func TestArrayExpression(t *testing.T) {
 	testInfixExpression(t, array.Elems[2], 3, "+", 3)
 }
 
+func TestIndexExpression(t *testing.T) {
+	input := "arr[1 + 1]"
+
+	p := New(lexer.New(input))
+	program := p.Parse()
+
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	idxExpr, isIdx := stmt.Expression.(*ast.IndexExpression)
+	if !isIdx {
+		t.Fatalf("stmt.Expression is not *ast.IndexExpression. got=%T", stmt.Expression)
+	}
+	if !testIdentifier(t, idxExpr.Left, "arr") {
+		return
+	}
+	testInfixExpression(t, idxExpr.Index, 1, "+", 1)
+}
+
 func TestIfExpression(t *testing.T) {
 	input := `
 	if (x < y) {
@@ -768,6 +787,14 @@ func TestOperatorPrecedences(t *testing.T) {
 		{
 			"add(a + b + c * d / f + g)",
 			"add((((a + b) + ((c * d) / f)) + g))",
+		},
+		{
+			"a * [1, 2, 3, 4][b * c] * d",
+			"((a * ([1, 2, 3, 4][(b * c)])) * d)",
+		},
+		{
+			"add(a * b[2], b[1], 2 * [1, 2][1])",
+			"add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
 		},
 	}
 
