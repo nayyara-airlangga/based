@@ -13,6 +13,7 @@ const (
 	ErrTypeMismatch              = "type mismatch: %s %s %s"
 	ErrIdentifierNotFound        = "identifier not found: %s"
 	ErrNotAFunction              = "not a function: %s"
+	ErrWrongNumberOfArgs         = "wrong number of arguments. got=%d, want=%d"
 )
 
 func newError(format string, args ...any) *object.Error {
@@ -97,14 +98,24 @@ func Eval(n ast.Node, env *object.Environment) object.Object {
 }
 
 func applyFunction(f object.Object, args []object.Object) object.Object {
-	fun, isFunc := f.(*object.Function)
-	if !isFunc {
-		return newError(ErrNotAFunction, fun.Type())
+	switch fn := f.(type) {
+	case *object.Function:
+		fun, isFunc := f.(*object.Function)
+		if !isFunc {
+			return newError(ErrNotAFunction, fun.Type())
+		}
+		if len(fn.Params) != len(args) {
+			return newError(ErrWrongNumberOfArgs, len(args), len(fn.Params))
+		}
+		extEnv := extendFunctionEnv(fun, args)
+		evaluated := Eval(fun.Body, extEnv)
+		return unwrapReturnValue(evaluated)
+	case *object.Builtin:
+		return fn.Fn(args...)
+	default:
+		return newError(ErrNotAFunction, f.Type())
 	}
 
-	extEnv := extendFunctionEnv(fun, args)
-	evaluated := Eval(fun.Body, extEnv)
-	return unwrapReturnValue(evaluated)
 }
 
 func extendFunctionEnv(
@@ -138,10 +149,16 @@ func evalExpressions(exprs []ast.Expression, env *object.Environment) (result []
 
 func evalIdentifier(id *ast.Identifier, env *object.Environment) object.Object {
 	val, exists := env.Get(id.Value)
-	if !exists {
-		return newError(ErrIdentifierNotFound, id.Value)
+	if exists {
+		return val
 	}
-	return val
+
+	builtin, exists := builtins[id.Value]
+	if exists {
+		return builtin
+	}
+
+	return newError(ErrIdentifierNotFound, id.Value)
 }
 
 func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {

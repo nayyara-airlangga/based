@@ -74,6 +74,36 @@ func TestErrorHandling(t *testing.T) {
 	}
 }
 
+func TestBuiltInFunctions(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected any
+	}{
+		{`len("")`, 0},
+		{`len("four")`, 4},
+		{`len("hello world")`, 11},
+		{`len(1)`, "invalid argument: 1 (INTEGER) not supported for len"},
+		{`len("one", "two")`, "wrong number of arguments. got=2, want=1"},
+	}
+
+	for _, tc := range tests {
+		evaluated := testEval(tc.input)
+		switch expected := tc.expected.(type) {
+		case int:
+			testIntegerObject(t, evaluated, int64(expected))
+		case string:
+			errObj, ok := evaluated.(*object.Error)
+			if !ok {
+				t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+				continue
+			}
+			if errObj.Message != expected {
+				t.Errorf("wrong error message. expected=%q, got=%q", expected, errObj.Message)
+			}
+		}
+	}
+}
+
 func TestFunctionLiteral(t *testing.T) {
 	input := "fn(x) { x + 2; };"
 	evaluated := testEval(input)
@@ -96,13 +126,14 @@ func TestFunctionLiteral(t *testing.T) {
 func TestFunctionApplication(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected int64
+		expected any
 	}{
 		{"let identity = fn(x) { x; }; identity(5);", 5},
 		{"let identity = fn(x) { return x; }; identity(5);", 5},
 		{"let double = fn(x) { x * 2; }; double(5);", 10},
 		{"let add = fn(x, y) { x + y; }; add(5, 5);", 10},
 		{"let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20},
+		{"let add = fn(x, y) { x + y; }; add(5);", "wrong number of arguments. got=1, want=2"},
 		{"fn(x) { x * 3; }(5)", 15},
 		{`
 		let muller = fn(x) { fn(y) { x * y } };
@@ -111,7 +142,20 @@ func TestFunctionApplication(t *testing.T) {
 		`, 15},
 	}
 	for _, tc := range tests {
-		testIntegerObject(t, testEval(tc.input), tc.expected)
+		evaluated := testEval(tc.input)
+		switch expected := tc.expected.(type) {
+		case int:
+			testIntegerObject(t, evaluated, int64(expected))
+		case string:
+			errObj, ok := evaluated.(*object.Error)
+			if !ok {
+				t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+				continue
+			}
+			if errObj.Message != expected {
+				t.Errorf("wrong error message. expected=%q, got=%q", expected, errObj.Message)
+			}
+		}
 	}
 }
 
